@@ -1,0 +1,7 @@
+---
+- name: BorgBackup | Install and Configure
+  hosts: all
+  become: true
+
+  roles:
+    - { role: borgbackup, when: ansible_system == 'Linux' }

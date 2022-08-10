@@ -1,0 +1,10 @@
+# /etc/systemd/system/borg-backup.timer
+
+[Unit]
+Description=Borg Backup
+
+[Timer]
+OnUnitActiveSec=5min
+
+[Install]
+WantedBy=timers.target
