@@ -1,6 +1,9 @@
 ---
 # handlers file for borgbackup
 
+- name: restart borgbackup
+  service: name=borgbackup state=restarted
+
 - name: Start and Enable borg-backup.timer
   service: name=borg-backup.timer state=started enabled=yes
-  when: ansible_os_family == "RedHat"
+

@@ -24,39 +24,38 @@
 # На сервере backup создаем пользователя и каталог /var/backup (в
 # домашнем задании нужно будет создать диск ~2Gb и
 # примонтировать его) и назначаем на него права пользователя borg
-- name: Create user borg and create backup directory
-  shell: useradd -m borg &&  mkdir /var/backup && chown borg:borg /var/backup/
-  when: backup
+- block: # ----- Backup Server ----
+  - name: Create user borg and create backup directory
+    shell: useradd -m borg;  mkdir /var/backup && chown borg:borg /var/backup/
 
 # На сервер backup создаем каталог ~/.ssh/authorized_keys в каталоге /home/borg
-- name: Create directory ~/.ssh/authorized_keys
-  shell: su - borg &&  mkdir .ssh && touch .ssh/authorized_keys && chmod 700 .ssh && chmod 600 .ssh/authorized_keys
-  when: backup
-
-# На client генерируем ssh-ключ и добавляем его на сервер backup в
-# файл authorized_keys созданным на прошлом шаге
-- name: Generate SSH Key in Client Server
-  shell: ssh-keygen -q -t rsa -N '' -f ~/.ssh/id_rsa <<<y # >/dev/null 2>&1
-  when: client
-
-- name: Copy SSH Key to Backup Server
-  shell: ssh-copy-id -i ~/.ssh/id_rsa borg@192.168.56.160
-  when: client
-
-# Инициализируем репозиторий borg на backup сервере с client сервера
-- name: Initialization Borg Backup Repo in Backup Server
-  shell: borg init --encryption=repokey borg@192.168.56.160:/var/backup/
-  when: client
+  - name: Create directory ~/.ssh/authorized_keys
+    shell: cd /home/borg &&  mkdir ./.ssh && touch ./.ssh/authorized_keys && chown -R borg:borg ./.ssh && chmod 700 ./.ssh && chmod 600 ./.ssh/authorized_keys
 
 # Автоматизируем создание бэкапов с помощью systemd
 # Создаем сервис и таймер в каталоге /etc/systemd/system/
-- name: Copy SystemD Files
-  copy: src={{ item }} dest=/etc/systemd/system mode=0666
-  loop:
-    - "borg-backup.service"
-    - "borg-backup.timer"
-  notify:
-    - Start and Enable borg-backup.timer
+  - name: Copy SystemD Files
+    copy: src={{ item }} dest=/etc/systemd/system mode=0666
+    loop:
+      - "borg-backup.service"
+      - "borg-backup.timer"
+    notify:
+      - Start and Enable borg-backup.timer
+  when: ansible_hostname == "backup"
+
+# На client генерируем ssh-ключ и добавляем его на сервер backup в
+# файл authorized_keys созданным на прошлом шаге
+- block: # ----- Client Server -----
+  - name: Generate SSH Key in Client Server
+    shell: ssh-keygen -q -t rsa -N '' -f ~/.ssh/id_rsa <<<y # >/dev/null 2>&1
+
+  - name: Copy SSH Key to Backup Server
+    shell: ssh-copy-id -i ~/.ssh/id_rsa borg@192.168.56.160
+
+# Инициализируем репозиторий borg на backup сервере с client сервера
+  - name: Initialization Borg Backup Repo in Backup Server
+    shell: borg init --encryption=repokey borg@192.168.56.160:/var/backup/
+  when: ansible_hostname == "client"
 
 #- name: BorgBackup | Create BorgBackup config file from template
 #  template:
