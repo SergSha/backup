@@ -2,11 +2,6 @@
 # vi: set ft=ruby :
 
 hosts = {
-  "client" => {
-    :box_name => "centos/7",
-    :ip_addr => "192.168.56.150",
-    :disks => {}
-  },
   "backup" => {
     :box_name => "centos/7",
     :ip_addr => "192.168.56.160",
@@ -17,16 +12,21 @@ hosts = {
         :port => 1
       }
     }
+  },
+  "client" => {
+    :box_name => "centos/7",
+    :ip_addr => "192.168.56.150",
+    :disks => {}
   }
 }
 
 Vagrant.configure("2") do |config|
 
-  config.vm.provision "ansible" do |ansible|
-    ansible.verbose = "vvv"
-    ansible.playbook = "./playbook.yml"
-    ansible.become = "true"
-  end
+#  config.vm.provision "ansible" do |ansible|
+#    ansible.verbose = "vvv"
+#    ansible.playbook = "./playbook.yml"
+#    ansible.become = "true"
+#  end
 
   hosts.each do |hostname, hostconfig|
     config.vm.define hostname do |machine|
@@ -53,6 +53,8 @@ Vagrant.configure("2") do |config|
       end
       machine.vm.provision "shell", inline: <<-SHELL
         mkdir -p ~root/.ssh; cp ~vagrant/.ssh/auth* ~root/.ssh
+        sed -i '65s/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
+        systemctl restart sshd
       SHELL
     end
   end
