@@ -10,7 +10,7 @@ Type=oneshot
 Environment="BORG_PASSPHRASE=Otus1234"
 
 # Repository
-Environment=REPO=borg@192.168.56.160:/var/backup/
+Environment=REPO=borg@{{ backup_ip_addr }}:/var/backup/
 
 # Object for backuping
 Environment=BACKUP_TARGET=/etc

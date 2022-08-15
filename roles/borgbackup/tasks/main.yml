@@ -105,23 +105,26 @@
     lineinfile: 
       dest: /root/.ssh/config 
       regexp: '^'
-      line: "Host 192.168.56.160\n  StrictHostKeyChecking=no\n  UserKnownHostsFile=/dev/null"
+      line: "Host {{ backup_ip_addr }}\n  StrictHostKeyChecking=no\n  UserKnownHostsFile=/dev/null"
       state: present
 
 # Инициализируем репозиторий borg на backup сервере с client сервера
   - name: Initialization Borg Backup Repo in Backup Server
     shell: borg init --encryption=repokey
     environment:
-      BORG_REPO: 'borg@192.168.56.160:/var/backup/'
+      BORG_REPO: 'borg@{{ backup_ip_addr }}:/var/backup/'
       BORG_PASSPHRASE: 'Otus1234'
 
 # Автоматизируем создание бэкапов с помощью systemd
 # Создаем сервис и таймер в каталоге /etc/systemd/system/
-  - name: Copy SystemD Files
-    copy: src={{ item }} dest=/etc/systemd/system mode=0644
-    loop:
-      - "borg-backup.service"
-      - "borg-backup.timer"
+  - block:
+    - name: Copy SystemD Files
+      copy: src={{ item }} dest=/etc/systemd/system mode=0644
+      loop:
+        - "borg-backup.timer"
+
+    - name: Template var-backup.mount to SystemD
+      template: src=borg-backup.service.j2 dest=/etc/systemd/system/borg-backup.service mode=0644
     notify:
       - Start and Enable borg-backup.timer
   when: ansible_hostname == "client"

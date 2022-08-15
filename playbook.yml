@@ -1,4 +1,13 @@
 ---
+
+- name: Get Backup Server Ports
+  task:
+    - shell: vagrant port {{ item }} --guest 22
+      register: {{ item }}_port
+      loop:
+        - "backup"
+        - "client"
+
 - name: BorgBackup | Install and Configure
   hosts: all
   become: true
