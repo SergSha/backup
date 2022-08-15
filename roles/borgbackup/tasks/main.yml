@@ -61,8 +61,8 @@
 #      opts: defaults, uid={{ uid_borg.stdout }}, gid={{ gid_borg.stdout }}
 #      state: present
 
-  - name: Copy borg-backup.mount to SystemD
-    copy: src=var-backup.mount dest=/etc/systemd/system mode=0644
+  - name: Template var-backup.mount to SystemD
+    template: src=var-backup.mount.j2 dest=/etc/systemd/system/var-backup.mount mode=0644
     notify:
       - Start and Enable var-backup.mount
 
