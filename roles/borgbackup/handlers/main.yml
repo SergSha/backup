@@ -7,3 +7,5 @@
 - name: Start and Enable var-backup.mount
   service: name=var-backup.mount state=started enabled=yes
 
+- name: Start and Enable set_var-backup_owner.service
+  service: name=set_var-backup_owner.service state=started enabled=yes

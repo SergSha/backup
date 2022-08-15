@@ -1,0 +1,14 @@
+# /etc/systemd/system/set_var-backup_owner.service
+
+[Unit]
+Description=oneshot systemd service to chown borg:borg /var/backup
+After=var-backup.mount
+Requires=var-backup.mount
+
+[Service]
+Type=oneshot
+#Using -v (verbose) to produce message that can be seen in the systemd journal. This is optional.
+ExecStart=/usr/bin/chown -v borg:borg /var/backup
+
+[Install]
+WantedBy=multi-user.target

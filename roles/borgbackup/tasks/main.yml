@@ -26,13 +26,13 @@
   - name: Add user borg to Backup Server
     user: name=borg shell=/bin/bash  password=''
 
-  - name: Fetch UID borg user
-    shell: id -u borg
-    register: uid_borg
+#  - name: Fetch UID borg user
+#    shell: id -u borg
+#    register: uid_borg
 
-  - name: Fetch GID borg group
-    shell: id -g borg
-    register: gid_borg
+#  - name: Fetch GID borg group
+#    shell: id -g borg
+#    register: gid_borg
 
   - name: Create Backup Directory
     file: path=/var/backup state=directory owner=borg group=borg mode=0755
@@ -58,13 +58,20 @@
 #      path: /var/backup
 #      src: UUID={{ blkid_sdb1.stdout }}
 #      fstype: xfs
-#      opts: defaults, uid={{ uid_borg.stdout }}, gid={{ gid_borg.stdout }}
+#      opts: defaults,uid={{ uid_borg.stdout }},gid={{ gid_borg.stdout }}
 #      state: present
 
   - name: Template var-backup.mount to SystemD
     template: src=var-backup.mount.j2 dest=/etc/systemd/system/var-backup.mount mode=0644
     notify:
       - Start and Enable var-backup.mount
+
+  - name: Copy SystemD Files
+    copy: src={{ item }} dest=/etc/systemd/system mode=0644
+    loop:
+      - "set_var-backup_owner.service"
+    notify:
+      - Start and Enable set_var-backup_owner.service
 
 # На сервер backup создаем каталог ~/.ssh/authorized_keys в каталоге /home/borg
   - name: Create directory ~/.ssh/
@@ -111,7 +118,7 @@
 # Автоматизируем создание бэкапов с помощью systemd
 # Создаем сервис и таймер в каталоге /etc/systemd/system/
   - name: Copy SystemD Files
-    copy: src={{ item }} dest=/etc/systemd/system mode=0666
+    copy: src={{ item }} dest=/etc/systemd/system mode=0644
     loop:
       - "borg-backup.service"
       - "borg-backup.timer"
