@@ -117,14 +117,13 @@
 
 # Автоматизируем создание бэкапов с помощью systemd
 # Создаем сервис и таймер в каталоге /etc/systemd/system/
-  - block:
-    - name: Copy SystemD Files
-      copy: src={{ item }} dest=/etc/systemd/system mode=0644
-      loop:
-        - "borg-backup.timer"
-
-    - name: Template var-backup.mount to SystemD
-      template: src=borg-backup.service.j2 dest=/etc/systemd/system/borg-backup.service mode=0644
+  - name: Template var-backup.mount to SystemD
+    template: src=borg-backup.service.j2 dest=/etc/systemd/system/borg-backup.service mode=0644
+      
+  - name: Copy SystemD Files
+    copy: src={{ item }} dest=/etc/systemd/system mode=0644
+    loop:
+      - "borg-backup.timer"
     notify:
       - Start and Enable borg-backup.timer
   when: ansible_hostname == "client"
