@@ -26,6 +26,14 @@
   - name: Add user borg to Backup Server
     user: name=borg shell=/bin/bash  password=''
 
+  - name: Fetch UID borg user
+    shell: id -u borg
+    register: uid_borg
+
+  - name: Fetch GID borg group
+    shell: id -g borg
+    register: gid_borg
+
   - name: Create Backup Directory
     file: path=/var/backup state=directory owner=borg group=borg mode=0755
 
@@ -39,12 +47,18 @@
     filesystem:
       fstype: xfs
       dev: /dev/sdb1
+      
+  - name: Fetch the UUID of /dev/sda5
+    shell: blkid -s UUID -o value /dev/sdb1
+    changed_when: false
+    register: blkid_sdb1
 
 #  - name: Mount up device /dev/sdb1
 #    mount:
 #      path: /var/backup
-#      src: /dev/sdb1
+#      src: UUID={{ blkid_sdb1.stdout }}
 #      fstype: xfs
+#      opts: defaults, uid={{ uid_borg.stdout }}, gid={{ gid_borg.stdout }}
 #      state: present
 
   - name: Copy borg-backup.mount to SystemD
