@@ -48,12 +48,12 @@
       fstype: xfs
       dev: /dev/sdb1
       
-  - name: Fetch the UUID of /dev/sda5
+  - name: Fetch the UUID of /dev/sdb1
     shell: blkid -s UUID -o value /dev/sdb1
     changed_when: false
     register: blkid_sdb1
 
-#  - name: Mount up device /dev/sdb1
+#  - name: Mount up device /dev/sdb1 by UUID
 #    mount:
 #      path: /var/backup
 #      src: UUID={{ blkid_sdb1.stdout }}
