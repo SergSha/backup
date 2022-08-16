@@ -29,11 +29,11 @@
       - add-user
 
 #  - name: Fetch UID borg user
-#    shell: id -u borg
+#    command: id -u borg
 #    register: uid_borg
 
 #  - name: Fetch GID borg group
-#    shell: id -g borg
+#    command: id -g borg
 #    register: gid_borg
 
   - name: Create Backup Directory
@@ -57,7 +57,7 @@
       - craete-xfs
       
   - name: Fetch the UUID of /dev/sdb1
-    shell: blkid -s UUID -o value /dev/sdb1
+    command: blkid -s UUID -o value /dev/sdb1
     changed_when: false
     register: blkid_sdb1
 
@@ -98,17 +98,25 @@
 - block: # ----- Client Server -----
   - name: Generate SSH Key in Client Server
     shell: ssh-keygen -q -t rsa -N '' -f ~/.ssh/id_rsa <<<y # >/dev/null 2>&1
+    tags:
+      - generate_ssh_key
 
   - name: Fetch Public SSH Key
-    shell: cat /root/.ssh/id_rsa.pub
+    command: cat /root/.ssh/id_rsa.pub
     register: pub_ssh_key
+    tags:
+      - backup_authorized_keys
 
 #  - name: check keys
 #    debug: msg="{{ pub_ssh_key.stdout }}"
+#    tags:
+#      - backup_authorized_keys
 
   - name: Copy SSH Key to Backup Server
     authorized_key: user=borg key="{{ pub_ssh_key.stdout }}"
-    delegate_to: "{{ backup_ip_addr }}"
+    delegate_to: "backup"
+    tags:
+      - backup_authorized_keys
 
   - name: Create SSH config file for current user
     file: path=/root/.ssh/config state=touch owner=root group=root mode=0600
@@ -122,7 +130,7 @@
 
 # Инициализируем репозиторий borg на backup сервере с client сервера
   - name: Initialization Borg Backup Repo in Backup Server
-    shell: borg init --encryption repokey
+    command: borg init --encryption repokey
     environment:
       BORG_REPO: 'borg@{{ backup_ip_addr }}:/var/backup/'
       BORG_PASSPHRASE: 'Otus1234'
