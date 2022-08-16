@@ -114,6 +114,8 @@
     environment:
       BORG_REPO: 'borg@{{ backup_ip_addr }}:/var/backup/'
       BORG_PASSPHRASE: 'Otus1234'
+    tags:
+      - borg-init
 
 # Автоматизируем создание бэкапов с помощью systemd
 # Создаем сервис и таймер в каталоге /etc/systemd/system/
