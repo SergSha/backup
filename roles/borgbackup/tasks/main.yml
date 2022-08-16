@@ -110,9 +110,9 @@
 
 # Инициализируем репозиторий borg на backup сервере с client сервера
   - name: Initialization Borg Backup Repo in Backup Server
-    shell: borg init --encryption=repokey borg@{{ backup_ip_addr }}:/var/backup/
+    shell: borg init --encryption repokey
     environment:
-#      BORG_REPO: borg@{{ backup_ip_addr }}:/var/backup/
+      BORG_REPO: 'borg@{{ backup_ip_addr }}:/var/backup/'
       BORG_PASSPHRASE: 'Otus1234'
 
 # Автоматизируем создание бэкапов с помощью systemd
