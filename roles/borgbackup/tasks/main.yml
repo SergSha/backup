@@ -108,7 +108,7 @@
 
   - name: Copy SSH Key to Backup Server
     authorized_key: user=borg key="{{ pub_ssh_key.stdout }}"
-    delegate_to: "backup"
+    delegate_to: "{{ backup_ip_addr }}"
 
   - name: Create SSH config file for current user
     file: path=/root/.ssh/config state=touch owner=root group=root mode=0600
