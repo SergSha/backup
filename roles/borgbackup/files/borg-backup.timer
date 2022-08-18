@@ -5,7 +5,7 @@ Description=Borg Backup
 Requires=borg-backup.service
 
 [Timer]
-Unit==borg-backup.service
+#Unit==borg-backup.service
 OnUnitActiveSec=5min
 
 [Install]
