@@ -132,8 +132,8 @@
   - name: Initialization Borg Backup Repo in Backup Server
     command: borg init --encryption repokey
     environment:
-      BORG_REPO: 'borg@{{ backup_ip_addr }}:/var/backup/'
-      BORG_PASSPHRASE: 'Otus1234'
+      BORG_REPO: "borg@{{ backup_ip_addr }}:/var/backup/"
+      BORG_PASSPHRASE: "Otus1234"
     tags:
       - borg-init
 

@@ -7,10 +7,10 @@ Description=Borg Backup
 Type=oneshot
 
 # Passphrase
-Environment="BORG_PASSPHRASE=Otus1234"
+Environment=BORG_PASSPHRASE=Otus1234
 
 # Repository
-Environment=REPO=borg@{{ backup_ip_addr }}:/var/backup/
+Environment=BORG_REPO=borg@{{ backup_ip_addr }}:/var/backup/
 
 # Object for backuping
 Environment=BACKUP_TARGET=/etc
@@ -18,14 +18,14 @@ Environment=BACKUP_TARGET=/etc
 # Create backup
 ExecStart=/bin/borg create \
 --stats \
-${REPO}::etc-{now:%%Y-%%m-%%d_%%H:%%M:%%S} ${BACKUP_TARGET}
+${BORG_REPO}::etc-{now:%%Y-%%m-%%d_%%H:%%M:%%S} ${BACKUP_TARGET}
 
 # Check backup
-ExecStart=/bin/borg check ${REPO}
+ExecStart=/bin/borg check ${BORG_REPO}
 
 # Clear old backup
 ExecStart=/bin/borg prune \
 --keep-daily 90 \
 --keep-monthly 12 \
 --keep-yearly 1 \
-${REPO}
+${BORG_REPO}

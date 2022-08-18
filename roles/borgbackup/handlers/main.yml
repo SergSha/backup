@@ -2,7 +2,7 @@
 # handlers file for borgbackup
 
 - name: Start and Enable borg-backup.timer
-  service: name=borg-backup.timer state=started enabled=yes
+  systemd: name=borg-backup.timer state=started enabled=yes daemon_reload=yes
 
 - name: Start and Enable var-backup.mount
   service: name=var-backup.mount state=started enabled=yes
