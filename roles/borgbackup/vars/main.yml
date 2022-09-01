@@ -2,7 +2,7 @@
 # vars file for borgbackup
 
 # IP address Backup Server
-backup_ip_addr: 192.168.56.160
+#backup_ip_addr: 192.168.50.160
 
 # IP address Client Server
-client_ip_addr: 192.168.56.150
+#client_ip_addr: 192.168.50.150

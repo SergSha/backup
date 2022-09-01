@@ -1,6 +1,7 @@
 ---
 # tasks file for borgbackup
 
+
 # Подключаем EPEL репозиторий с дополнительными пакетами
 - name: BorgBackup | Install EPEL Repo package from standart repo
   yum:
@@ -23,6 +24,16 @@
 # домашнем задании нужно будет создать диск ~2Gb и
 # примонтировать его) и назначаем на него права пользователя borg
 - block: # ----- Backup Server ----
+# Get IP address of backup server
+  - name: Get IP address of backup server
+    vars: backup_ip_addr={{ ansible_eth1.ipv4.address }}
+#   backup_ip_addr: 192.168.50.160
+
+  - name: Backup | IP address
+    debug: msg="{{ backup_ip_addr }}"
+    tags:
+      - backup-ip-address
+  
   - name: Add user borg to Backup Server
     user: name=borg shell=/bin/bash  password=''
     tags:
@@ -96,6 +107,16 @@
 # На client генерируем ssh-ключ и добавляем его на сервер backup в
 # файл authorized_keys созданным на прошлом шаге
 - block: # ----- Client Server -----
+# Get IP address of backup server
+  - name: Get IP address of client server
+    vars: client_ip_addr={{ ansible_eth1.ipv4.address }}
+#   client_ip_addr: 192.168.50.150
+
+  - name: Client | IP address
+    debug: msg="{{ client_ip_addr }}"
+    tags:
+      - client-ip-address
+
   - name: Generate SSH Key in Client Server
     shell: ssh-keygen -q -t rsa -N '' -f ~/.ssh/id_rsa <<<y # >/dev/null 2>&1
     tags:
