@@ -25,12 +25,9 @@
 # примонтировать его) и назначаем на него права пользователя borg
 - block: # ----- Backup Server ----
 # Get IP address of backup server
-  - name: Get IP address of backup server
-    vars: backup_ip_addr={{ ansible_eth1.ipv4.address }}
-#   backup_ip_addr: 192.168.50.160
-
   - name: Backup | IP address
-    debug: msg="{{ backup_ip_addr }}"
+    debug: msg="{{ ansible_eth1.ipv4.address }}"
+    register: backup_ip_addr
     tags:
       - backup-ip-address
   
@@ -108,12 +105,9 @@
 # файл authorized_keys созданным на прошлом шаге
 - block: # ----- Client Server -----
 # Get IP address of backup server
-  - name: Get IP address of client server
-    vars: client_ip_addr={{ ansible_eth1.ipv4.address }}
-#   client_ip_addr: 192.168.50.150
-
   - name: Client | IP address
-    debug: msg="{{ client_ip_addr }}"
+    debug: msg="{{ ansible_eth1.ipv4.address }}"
+    register: client_ip_addr
     tags:
       - client-ip-address
 
