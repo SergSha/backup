@@ -51,14 +51,14 @@ Vagrant.configure("2") do |config|
         sed -i '65s/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
         systemctl restart sshd
       SHELL
-      if opts[:name] == hosts.last[:name]
-        config.vm.provision "ansible" do |ansible|
-          ansible.playbook = "playbook.yml"
+#      if opts[:name] == hosts.last[:name]
+#        config.vm.provision "ansible" do |ansible|
+#          ansible.playbook = "playbook.yml"
 #          ansible.inventory_path = "hosts"
 #          ansible.host_key_checking = "false"
-          ansible.limit = "all"
-        end
-      end
+#          ansible.limit = "all"
+#        end
+#      end
     end
   end
 end

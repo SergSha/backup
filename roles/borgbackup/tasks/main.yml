@@ -55,7 +55,7 @@
       fstype: xfs
       dev: /dev/sdb1
     tags:
-      - craete-xfs
+      - create-xfs
       
   - name: Fetch the UUID of /dev/sdb1
     command: blkid -s UUID -o value /dev/sdb1
