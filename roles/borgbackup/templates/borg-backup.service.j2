@@ -15,6 +15,12 @@ Environment=BORG_REPO=borg@{{ backup_ip_addr }}:/var/backup/
 # Object for backuping
 Environment=BACKUP_TARGET=/etc
 
+# Logger
+#Environment=LOG=/var/log/borg-backup.log
+#[ -f "$LOG" ] || touch "$LOG"
+#exec &> >(tee -i ""$LOG")
+#exec 2>&1
+
 # Create backup
 ExecStart=/bin/borg create \
 --stats \
