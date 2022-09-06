@@ -554,9 +554,76 @@ OnUnitActiveSec=5min
 [Install]
 WantedBy=timers.target</pre>
 
-<p>Включаем и запускаем службу таймера:</p>
+<p>Логи работы borgbackup будем перенаправлять в отдельный файл /var/log/borg-backup.log. Для этого в borg-backup.service добавим строки:</p>
 
-<pre>[root@client ~]# systemctl enable borg-backup.timer --now
+<pre># Log to borg-backup.log
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=borg-backup</pre>
+
+<p>В итоге borg-backup.service будет иметь следующий вид:</p>
+
+<pre># /etc/systemd/system/borg-backup.service
+
+[Unit]
+Description=Borg Backup
+
+[Service]
+Type=oneshot
+
+# Passphrase
+Environment=BORG_PASSPHRASE=Otus1234
+
+# Repository
+Environment=BORG_REPO=borg@{{ backup_ip_addr }}:/var/backup/
+
+# Object for backuping
+Environment=BACKUP_TARGET=/etc
+
+# Create backup
+ExecStart=/bin/borg create \
+--stats \
+${BORG_REPO}::etc-{now:%%Y-%%m-%%d_%%H:%%M:%%S} ${BACKUP_TARGET}
+
+# Check backup
+ExecStart=/bin/borg check ${BORG_REPO}
+
+# Clear old backup
+ExecStart=/bin/borg prune \
+--keep-daily 90 \
+--keep-monthly 12 \
+--keep-yearly 1 \
+${BORG_REPO}
+
+# Log to borg-backup.log
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=borg-backup</pre>
+
+<p>В /etc/rsyslog.d/ добавим конфиг файл borg-backup.conf:</p>
+
+<pre># /etc/rsyslog.d/borg-backup.conf
+if $programname == 'borg-backup' then /var/log/borg-backup.log
+& stop</pre>
+
+<p>Для ротации логов работы borgbackup (borg-backup.log) создадим конфиг файл borg-backup.conf в /etc/logrotate.d:</p>
+
+<pre># /etc/logrotate.d/borg-backup.conf
+/var/log/borg-backup.log {
+  rotate 3
+  missingok
+  notifempty
+  compress
+  size 1M
+  daily
+  create 0644 root root
+}</pre>
+
+<p>Перезапускаем rsyslog сервис, включаем и запускаем службу таймера:</p>
+
+<pre>[root@client ~]# systemctl daemon-reload
+[root@client ~]# systemctl restart rsyslog
+[root@client ~]# systemctl enable borg-backup.timer --now
 Created symlink from /etc/systemd/system/timers.target.wants/borg-backup.timer to /etc/systemd/system/borg-backup.timer.
 [root@client ~]# </pre>
 
@@ -577,6 +644,7 @@ n/a                          n/a           n/a                          n/a     
 Enter passphrase for key ssh://borg@192.168.50.160/var/backup: 
 etc-2022-09-03_12:33:53              Sat, 2022-09-03 12:33:54 [1b17ca8dee20d7cc61f790a81ea6a56a7566a3600218a07f504aedcbd0d36575]
 [root@client ~]#</pre>
+
 
 <p>Перезагружаем backup и client серверы:<br />
 - backup:</p>
@@ -621,29 +689,173 @@ etc-2022-09-03_13:58:30              Sat, 2022-09-03 13:58:31 [68b9143c7b063484a
 
 <p>Как видим, после перезагрузки бекапы создаются автоматически.</p>
 
+<p>Лог работы borgbackup в /var/log/borg-backup.log:</p>
 
+<pre>Sep  6 12:38:06 client borg-backup: Remote: Warning: Permanently added '192.168.50.160' (ECDSA) to the list of known hosts.
+Sep  6 12:38:16 client borg-backup: ------------------------------------------------------------------------------
+Sep  6 12:38:16 client borg-backup: Archive name: etc-2022-09-06_12:38:05
+Sep  6 12:38:16 client borg-backup: Archive fingerprint: fdffea762fe5bc85105050e8d67a6661804f9404f9f429ecdaff15bb84c3df5b
+Sep  6 12:38:16 client borg-backup: Time (start): Tue, 2022-09-06 12:38:07
+Sep  6 12:38:16 client borg-backup: Time (end):   Tue, 2022-09-06 12:38:15
+Sep  6 12:38:16 client borg-backup: Duration: 8.43 seconds
+Sep  6 12:38:16 client borg-backup: Number of files: 1702
+Sep  6 12:38:16 client borg-backup: Utilization of max. archive size: 0%
+Sep  6 12:38:16 client borg-backup: ------------------------------------------------------------------------------
+Sep  6 12:38:16 client borg-backup: Original size      Compressed size    Deduplicated size
+Sep  6 12:38:16 client borg-backup: This archive:               28.43 MB             13.49 MB             11.84 MB
+Sep  6 12:38:16 client borg-backup: All archives:               28.43 MB             13.49 MB             11.84 MB
+Sep  6 12:38:16 client borg-backup: Unique chunks         Total chunks
+Sep  6 12:38:16 client borg-backup: Chunk index:                    1282                 1698
+Sep  6 12:38:16 client borg-backup: ------------------------------------------------------------------------------
+Sep  6 12:38:16 client borg-backup: Remote: Warning: Permanently added '192.168.50.160' (ECDSA) to the list of known hosts.
+Sep  6 12:38:19 client borg-backup: Remote: Warning: Permanently added '192.168.50.160' (ECDSA) to the list of known hosts.
+Sep  6 12:43:12 client borg-backup: Remote: Warning: Permanently added '192.168.50.160' (ECDSA) to the list of known hosts.
+Sep  6 12:43:14 client borg-backup: ------------------------------------------------------------------------------
+Sep  6 12:43:14 client borg-backup: Archive name: etc-2022-09-06_12:43:11
+Sep  6 12:43:14 client borg-backup: Archive fingerprint: 1e78b5674969883587bd76def88184bf8b434939c05d9061c28c5088b82b8789
+Sep  6 12:43:14 client borg-backup: Time (start): Tue, 2022-09-06 12:43:13
+Sep  6 12:43:14 client borg-backup: Time (end):   Tue, 2022-09-06 12:43:14
+Sep  6 12:43:14 client borg-backup: Duration: 0.67 seconds
+Sep  6 12:43:14 client borg-backup: Number of files: 1702
+Sep  6 12:43:14 client borg-backup: Utilization of max. archive size: 0%
+Sep  6 12:43:14 client borg-backup: ------------------------------------------------------------------------------
+Sep  6 12:43:14 client borg-backup: Original size      Compressed size    Deduplicated size
+Sep  6 12:43:14 client borg-backup: This archive:               28.43 MB             13.49 MB            126.15 kB
+Sep  6 12:43:14 client borg-backup: All archives:               56.86 MB             26.99 MB             11.97 MB
+Sep  6 12:43:14 client borg-backup: Unique chunks         Total chunks
+Sep  6 12:43:14 client borg-backup: Chunk index:                    1285                 3396
+Sep  6 12:43:14 client borg-backup: ------------------------------------------------------------------------------
+Sep  6 12:43:15 client borg-backup: Remote: Warning: Permanently added '192.168.50.160' (ECDSA) to the list of known hosts.
+Sep  6 12:43:17 client borg-backup: Remote: Warning: Permanently added '192.168.50.160' (ECDSA) to the list of known hosts.
+Sep  6 12:48:39 client borg-backup: Remote: Warning: Permanently added '192.168.50.160' (ECDSA) to the list of known hosts.
+Sep  6 12:48:41 client borg-backup: ------------------------------------------------------------------------------
+Sep  6 12:48:41 client borg-backup: Archive name: etc-2022-09-06_12:48:38
+Sep  6 12:48:41 client borg-backup: Archive fingerprint: 66a9ea8b5eb949631a51dfdf5f6789a44f01b5e75474f2cd8c0f6e582d5889fd
+Sep  6 12:48:41 client borg-backup: Time (start): Tue, 2022-09-06 12:48:40
+Sep  6 12:48:41 client borg-backup: Time (end):   Tue, 2022-09-06 12:48:40
+Sep  6 12:48:41 client borg-backup: Duration: 0.60 seconds
+Sep  6 12:48:41 client borg-backup: Number of files: 1702
+Sep  6 12:48:41 client borg-backup: Utilization of max. archive size: 0%
+Sep  6 12:48:41 client borg-backup: ------------------------------------------------------------------------------
+Sep  6 12:48:41 client borg-backup: Original size      Compressed size    Deduplicated size
+Sep  6 12:48:41 client borg-backup: This archive:               28.43 MB             13.49 MB                540 B
+Sep  6 12:48:41 client borg-backup: All archives:               56.86 MB             26.99 MB             11.84 MB
+Sep  6 12:48:41 client borg-backup: Unique chunks         Total chunks
+Sep  6 12:48:41 client borg-backup: Chunk index:                    1283                 3396
+Sep  6 12:48:41 client borg-backup: ------------------------------------------------------------------------------
+Sep  6 12:48:42 client borg-backup: Remote: Warning: Permanently added '192.168.50.160' (ECDSA) to the list of known hosts.
+Sep  6 12:48:44 client borg-backup: Remote: Warning: Permanently added '192.168.50.160' (ECDSA) to the list of known hosts.
+Sep  6 12:54:29 client borg-backup: Remote: Warning: Permanently added '192.168.50.160' (ECDSA) to the list of known hosts.
+Sep  6 12:54:31 client borg-backup: ------------------------------------------------------------------------------
+Sep  6 12:54:31 client borg-backup: Archive name: etc-2022-09-06_12:54:28
+Sep  6 12:54:31 client borg-backup: Archive fingerprint: eb8c9dbf85311baf7dcf7637fb31becdd562255fda2ca7bda010dd9a784da4e6
+Sep  6 12:54:31 client borg-backup: Time (start): Tue, 2022-09-06 12:54:30
+Sep  6 12:54:31 client borg-backup: Time (end):   Tue, 2022-09-06 12:54:31
+Sep  6 12:54:31 client borg-backup: Duration: 0.60 seconds
+Sep  6 12:54:31 client borg-backup: Number of files: 1702
+Sep  6 12:54:31 client borg-backup: Utilization of max. archive size: 0%
+Sep  6 12:54:31 client borg-backup: ------------------------------------------------------------------------------
+Sep  6 12:54:31 client borg-backup: Original size      Compressed size    Deduplicated size
+Sep  6 12:54:31 client borg-backup: This archive:               28.43 MB             13.49 MB                542 B
+Sep  6 12:54:31 client borg-backup: All archives:               56.86 MB             26.99 MB             11.84 MB
+Sep  6 12:54:31 client borg-backup: Unique chunks         Total chunks
+Sep  6 12:54:31 client borg-backup: Chunk index:                    1283                 3396
+Sep  6 12:54:31 client borg-backup: ------------------------------------------------------------------------------
+Sep  6 12:54:32 client borg-backup: Remote: Warning: Permanently added '192.168.50.160' (ECDSA) to the list of known hosts.
+Sep  6 12:54:34 client borg-backup: Remote: Warning: Permanently added '192.168.50.160' (ECDSA) to the list of known hosts.
+Sep  6 12:59:39 client borg-backup: Remote: Warning: Permanently added '192.168.50.160' (ECDSA) to the list of known hosts.
+Sep  6 12:59:41 client borg-backup: ------------------------------------------------------------------------------
+Sep  6 12:59:41 client borg-backup: Archive name: etc-2022-09-06_12:59:38
+Sep  6 12:59:41 client borg-backup: Archive fingerprint: 0d2abb6f5f841a4b149a051c47e49461d4b1c0452b15313775369865b7b6bdc5
+Sep  6 12:59:41 client borg-backup: Time (start): Tue, 2022-09-06 12:59:40
+Sep  6 12:59:41 client borg-backup: Time (end):   Tue, 2022-09-06 12:59:41
+Sep  6 12:59:41 client borg-backup: Duration: 0.66 seconds
+Sep  6 12:59:41 client borg-backup: Number of files: 1702
+Sep  6 12:59:41 client borg-backup: Utilization of max. archive size: 0%
+Sep  6 12:59:41 client borg-backup: ------------------------------------------------------------------------------
+Sep  6 12:59:41 client borg-backup: Original size      Compressed size    Deduplicated size
+Sep  6 12:59:41 client borg-backup: This archive:               28.43 MB             13.49 MB                542 B
+Sep  6 12:59:41 client borg-backup: All archives:               56.86 MB             26.99 MB             11.84 MB
+Sep  6 12:59:41 client borg-backup: Unique chunks         Total chunks
+Sep  6 12:59:41 client borg-backup: Chunk index:                    1283                 3396
+Sep  6 12:59:41 client borg-backup: ------------------------------------------------------------------------------
+Sep  6 12:59:42 client borg-backup: Remote: Warning: Permanently added '192.168.50.160' (ECDSA) to the list of known hosts.
+Sep  6 12:59:44 client borg-backup: Remote: Warning: Permanently added '192.168.50.160' (ECDSA) to the list of known hosts.
+Sep  6 13:05:39 client borg-backup: Remote: Warning: Permanently added '192.168.50.160' (ECDSA) to the list of known hosts.
+Sep  6 13:05:41 client borg-backup: ------------------------------------------------------------------------------
+Sep  6 13:05:41 client borg-backup: Archive name: etc-2022-09-06_13:05:38
+Sep  6 13:05:41 client borg-backup: Archive fingerprint: 9fe8e914278853675eea2d0d5dff430d675b2d038996e7efeb1c51c03e3dcac6
+Sep  6 13:05:41 client borg-backup: Time (start): Tue, 2022-09-06 13:05:40
+Sep  6 13:05:41 client borg-backup: Time (end):   Tue, 2022-09-06 13:05:41
+Sep  6 13:05:41 client borg-backup: Duration: 0.65 seconds
+Sep  6 13:05:41 client borg-backup: Number of files: 1702
+Sep  6 13:05:41 client borg-backup: Utilization of max. archive size: 0%
+Sep  6 13:05:41 client borg-backup: ------------------------------------------------------------------------------
+Sep  6 13:05:41 client borg-backup: Original size      Compressed size    Deduplicated size
+Sep  6 13:05:41 client borg-backup: This archive:               28.43 MB             13.49 MB            126.15 kB
+Sep  6 13:05:41 client borg-backup: All archives:               56.86 MB             26.99 MB             11.97 MB
+Sep  6 13:05:41 client borg-backup: Unique chunks         Total chunks
+Sep  6 13:05:41 client borg-backup: Chunk index:                    1285                 3396
+Sep  6 13:05:41 client borg-backup: ------------------------------------------------------------------------------
+Sep  6 13:05:42 client borg-backup: Remote: Warning: Permanently added '192.168.50.160' (ECDSA) to the list of known hosts.
+Sep  6 13:05:44 client borg-backup: Remote: Warning: Permanently added '192.168.50.160' (ECDSA) to the list of known hosts.
+Sep  6 13:11:39 client borg-backup: Remote: Warning: Permanently added '192.168.50.160' (ECDSA) to the list of known hosts.
+Sep  6 13:11:41 client borg-backup: ------------------------------------------------------------------------------
+Sep  6 13:11:41 client borg-backup: Archive name: etc-2022-09-06_13:11:38
+Sep  6 13:11:41 client borg-backup: Archive fingerprint: c9a352ec1e26bdbd2fb465e2c26e89bab8f6b00eeb584b7c47137a16df2a2d62
+Sep  6 13:11:41 client borg-backup: Time (start): Tue, 2022-09-06 13:11:40
+Sep  6 13:11:41 client borg-backup: Time (end):   Tue, 2022-09-06 13:11:41
+Sep  6 13:11:41 client borg-backup: Duration: 0.66 seconds
+Sep  6 13:11:41 client borg-backup: Number of files: 1702
+Sep  6 13:11:41 client borg-backup: Utilization of max. archive size: 0%
+Sep  6 13:11:41 client borg-backup: ------------------------------------------------------------------------------
+Sep  6 13:11:41 client borg-backup: Original size      Compressed size    Deduplicated size
+Sep  6 13:11:41 client borg-backup: This archive:               28.43 MB             13.49 MB                542 B
+Sep  6 13:11:41 client borg-backup: All archives:               56.86 MB             26.99 MB             11.84 MB
+Sep  6 13:11:41 client borg-backup: Unique chunks         Total chunks
+Sep  6 13:11:41 client borg-backup: Chunk index:                    1283                 3396
+Sep  6 13:11:41 client borg-backup: ------------------------------------------------------------------------------
+Sep  6 13:11:42 client borg-backup: Remote: Warning: Permanently added '192.168.50.160' (ECDSA) to the list of known hosts.
+Sep  6 13:11:44 client borg-backup: Remote: Warning: Permanently added '192.168.50.160' (ECDSA) to the list of known hosts.
+Sep  6 13:17:39 client borg-backup: Remote: Warning: Permanently added '192.168.50.160' (ECDSA) to the list of known hosts.
+Sep  6 13:17:41 client borg-backup: ------------------------------------------------------------------------------
+Sep  6 13:17:41 client borg-backup: Archive name: etc-2022-09-06_13:17:38
+Sep  6 13:17:41 client borg-backup: Archive fingerprint: b60575d46ed5976f4ac8282870a076a67f0ab49672cb120372be2b7c9a1f0860
+Sep  6 13:17:41 client borg-backup: Time (start): Tue, 2022-09-06 13:17:40
+Sep  6 13:17:41 client borg-backup: Time (end):   Tue, 2022-09-06 13:17:41
+Sep  6 13:17:41 client borg-backup: Duration: 0.63 seconds
+Sep  6 13:17:41 client borg-backup: Number of files: 1702
+Sep  6 13:17:41 client borg-backup: Utilization of max. archive size: 0%
+Sep  6 13:17:41 client borg-backup: ------------------------------------------------------------------------------
+Sep  6 13:17:41 client borg-backup: Original size      Compressed size    Deduplicated size
+Sep  6 13:17:41 client borg-backup: This archive:               28.43 MB             13.49 MB                542 B
+Sep  6 13:17:41 client borg-backup: All archives:               56.86 MB             26.99 MB             11.84 MB
+Sep  6 13:17:41 client borg-backup: Unique chunks         Total chunks
+Sep  6 13:17:41 client borg-backup: Chunk index:                    1283                 3396
+Sep  6 13:17:41 client borg-backup: ------------------------------------------------------------------------------
+Sep  6 13:17:42 client borg-backup: Remote: Warning: Permanently added '192.168.50.160' (ECDSA) to the list of known hosts.
+Sep  6 13:17:44 client borg-backup: Remote: Warning: Permanently added '192.168.50.160' (ECDSA) to the list of known hosts.
+Sep  6 13:23:39 client borg-backup: Remote: Warning: Permanently added '192.168.50.160' (ECDSA) to the list of known hosts.
+Sep  6 13:23:41 client borg-backup: ------------------------------------------------------------------------------
+Sep  6 13:23:41 client borg-backup: Archive name: etc-2022-09-06_13:23:38
+Sep  6 13:23:41 client borg-backup: Archive fingerprint: aaa4d40a3fea594af2e98d3d65a70e33a0f05d72e5983c07fab2137a17530210
+Sep  6 13:23:41 client borg-backup: Time (start): Tue, 2022-09-06 13:23:40
+Sep  6 13:23:41 client borg-backup: Time (end):   Tue, 2022-09-06 13:23:41
+Sep  6 13:23:41 client borg-backup: Duration: 0.68 seconds
+Sep  6 13:23:41 client borg-backup: Number of files: 1702
+Sep  6 13:23:41 client borg-backup: Utilization of max. archive size: 0%
+Sep  6 13:23:41 client borg-backup: ------------------------------------------------------------------------------
+Sep  6 13:23:41 client borg-backup: Original size      Compressed size    Deduplicated size
+Sep  6 13:23:41 client borg-backup: This archive:               28.43 MB             13.49 MB            126.16 kB
+Sep  6 13:23:41 client borg-backup: All archives:               56.86 MB             26.99 MB             11.97 MB
+Sep  6 13:23:41 client borg-backup: Unique chunks         Total chunks
+Sep  6 13:23:41 client borg-backup: Chunk index:                    1285                 3396
+Sep  6 13:23:41 client borg-backup: ------------------------------------------------------------------------------
+Sep  6 13:23:42 client borg-backup: Remote: Warning: Permanently added '192.168.50.160' (ECDSA) to the list of known hosts.
+Sep  6 13:23:44 client borg-backup: Remote: Warning: Permanently added '192.168.50.160' (ECDSA) to the list of known hosts.</pre>
 
-
-настроено логирование процесса бекапа. Для упрощения можно весь вывод перенаправлять в logger с соответствующим тегом. Если настроите не в syslog, то обязательна ротация логов.
-Запустите стенд на 30 минут.
-Убедитесь что резервные копии снимаются.
-Остановите бекап, удалите (или переместите) директорию /etc и восстановите ее из бекапа.
-Для сдачи домашнего задания ожидаем настроенные стенд, логи процесса бэкапа и описание процесса восстановления.
-Формат сдачи ДЗ - vagrant + ansible
-
-
-logrotate:
-
-[root@client ~]# less /etc/logrotate.d/
-chrony          samba           syslog          wpa_supplicant  yum
-
-
-borg extract borg@192.168.50.160:/var/backup/::etc-2022-09-03_11:51:35 etc/hostname
-
-borg list borg@192.168.50.160:/var/backup/::etc-2022-09-03_11:51:35
-
-borg create --stats --list borg@192.168.50.160:/var/backup/::"etc-{now:%Y-%m-%d_%H:%M:%S}" /etc
-
-
-
-
+<pre>[root@client ~]# borg list borg@192.168.50.160:/var/backup/
+Remote: Warning: Permanently added '192.168.50.160' (ECDSA) to the list of known hosts.
+Enter passphrase for key ssh://borg@192.168.50.160/var/backup:
+etc-2022-09-06_13:23:38              Tue, 2022-09-06 13:23:40 [aaa4d40a3fea594af2e98d3d65a70e33a0f05d72e5983c07fab2137a17530210]
+[root@client ~]#</pre>
