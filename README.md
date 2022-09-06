@@ -327,9 +327,9 @@ WantedBy=multi-user.target</pre>
 
 <p>Запустим его и включим в автозапуск при загрузке системы:</p>
 
-<p>[root@backup ~]# systemctl enable set_var-backup_owner.service --now
+<pre>[root@backup ~]# systemctl enable set_var-backup_owner.service --now
 Created symlink from /etc/systemd/system/multi-user.target.wants/set_var-backup_owner.service to /etc/systemd/system/set_var-backup_owner.service.
-[root@backup ~]#</p>
+[root@backup ~]#</pre>
 
 <p>На сервер backup создаем каталог ~/.ssh/authorized_keys в каталоге /home/borg:</p>
 
