@@ -140,6 +140,12 @@
 
 # Автоматизируем создание бэкапов с помощью systemd
 # Создаем сервис и таймер в каталоге /etc/systemd/system/
+  - name: Copy rsyslog and logrotate config files
+    copy: src={{ item }}/borg-backup.conf dest=/etc/{{ item }}/
+    loop:
+      - "rsyslog.d"
+      - "logrotate.d"
+
   - name: Template var-backup.mount to SystemD
     template: src=borg-backup.service.j2 dest=/etc/systemd/system/borg-backup.service mode=0644
     tags:
@@ -150,8 +156,8 @@
     loop:
       - "borg-backup.timer"
     notify:
+      - Rsyslog restart
       - Start and Enable borg-backup.timer
     tags:
       - borg-backup-systemd
   when: ansible_hostname == "client"
-

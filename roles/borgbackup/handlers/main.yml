@@ -1,6 +1,9 @@
 ---
 # handlers file for borgbackup
 
+- name: Rsyslog restart
+  service: name=rsyslog.service state=restarted daemon_reload=yes
+
 - name: Start and Enable borg-backup.timer
   systemd: name=borg-backup.timer state=started enabled=yes daemon_reload=yes
 

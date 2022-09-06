@@ -35,3 +35,8 @@ ExecStart=/bin/borg prune \
 --keep-monthly 12 \
 --keep-yearly 1 \
 ${BORG_REPO}
+
+# Log to borg-backup
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=borg-backup
