@@ -164,8 +164,8 @@ Complete!
 
 <p>На сервере backup создаем каталог /var/backup:</p>
 
-<pre><[root@backup ~]# mkdir /var/backup
-[root@backup ~]#/pre>
+<pre>[root@backup ~]# mkdir /var/backup
+[root@backup ~]#</pre>
 
 <p>Смотрим список блочных устройств:</p>
 
